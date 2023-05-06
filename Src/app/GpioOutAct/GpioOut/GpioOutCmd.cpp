@@ -192,12 +192,12 @@ static CmdStatus On(Console &console, Evt const *e) {
         case Console::CONSOLE_CMD: {
             Console::ConsoleCmd const &ind = static_cast<Console::ConsoleCmd const &>(*e);
             if (ind.Argc() >= 2) {
-                uint32_t pattern = STRING_TO_NUM(ind.Argv(1), 0);
+                uint32_t patternIdx = STRING_TO_NUM(ind.Argv(1), 0);
                 bool repeat = true;
                 if (ind.Argc() >= 3 && STRING_EQUAL(ind.Argv(2), "0")) {
                     repeat = false;
                 }
-                console.Print("pattern = %d, repeat = %d\n\r", pattern, repeat);
+                console.Print("pattern = %d, repeat = %d\n\r", patternIdx, repeat);
                 // Assignment 2 - Implement the command to display the indexed pattern. If repeat is "0", it is shown once;
                 //           otherwise it is shown 5 times. Handle the case when the index is out of range.
                 //           As a reminder, the set of LED patterns is defined in the structure TEST_LED_PATTERN_SET.
@@ -206,12 +206,19 @@ static CmdStatus On(Console &console, Evt const *e) {
                 // Beginning sample code.
                 InitGpio();
                 ConfigPwm(1000);
-                Delay(200);
-                ConfigPwm(0);
-                Delay(200);
-                ConfigPwm(200);
-                Delay(200);
-                ConfigPwm(0);
+
+                GpioPattern const *pattern = TEST_GPIO_PATTERN_SET.GetPattern(patternIdx);
+                if (pattern) {
+                    for (uint32_t i = 0; i < 5; i++) {
+                        for (uint32_t idx = 0; idx < pattern->GetCount(); idx++) {
+                            GpioInterval const &interval = pattern->GetInterval(idx);
+                            ConfigPwm(interval.GetLevelPermil());
+                            Delay(interval.GetDurationMs());
+                        }
+                    }
+                } else {
+                    console.Print("Invalid pattern %lu\n\r", patternIdx);
+                }
                 // End sample code.
                 return CMD_DONE;
             }
